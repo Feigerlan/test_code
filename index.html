@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>绚丽烟花效果</title>
+    <title>流线型烟花效果</title>
     <style>
         body {
             margin: 0;
@@ -32,12 +32,21 @@
             background: radial-gradient(circle, #fff, #ccc);
         }
         
+        /* 流线型拖尾效果 */
         .trail {
             position: absolute;
             width: 2px;
             height: 2px;
             border-radius: 50%;
             pointer-events: none;
+            transition: all 0.3s ease-out;
+        }
+        
+        .streamline {
+            position: absolute;
+            pointer-events: none;
+            transform-origin: left center;
+            height: 2px;
         }
         
         #instructions {
@@ -68,18 +77,19 @@
                 '#ff7700', '#ff0077', '#7700ff', '#00ff77', '#77ff00', '#ff77ff'
             ];
             
-            // 创建带拖尾效果的烟花
+            // 创建带流线型拖尾效果的烟花
             function createFirework(x, y) {
-                const particleCount = 150; // 增加粒子数量
+                const particleCount = 150; // 粒子数量
                 
                 for (let i = 0; i < particleCount; i++) {
+                    // 主粒子
                     const particle = document.createElement('div');
                     particle.className = 'particle';
                     
                     // 随机选择颜色
                     const color = colors[Math.floor(Math.random() * colors.length)];
                     particle.style.backgroundColor = color;
-                    particle.style.boxShadow = `0 0 6px 2px ${color}`;
+                    particle.style.boxShadow = `0 0 8px 3px ${color}`;
                     particle.style.left = `${x}px`;
                     particle.style.top = `${y}px`;
                     
@@ -90,7 +100,11 @@
                     const distance = 100 + Math.random() * 150;
                     const duration = 1000 + Math.random() * 1000;
                     
-                    // 创建拖尾效果
+                    // 创建流线型拖尾
+                    let lastTrail = { x: x, y: y };
+                    const trailPositions = [];
+                    
+                    // 拖尾定时器
                     const trailInterval = setInterval(() => {
                         if (!particle.parentNode) {
                             clearInterval(trailInterval);
@@ -98,27 +112,58 @@
                         }
                         
                         const rect = particle.getBoundingClientRect();
-                        const trail = document.createElement('div');
-                        trail.className = 'trail';
-                        trail.style.backgroundColor = color;
-                        trail.style.opacity = '0.7';
-                        trail.style.left = `${rect.left + window.scrollX}px`;
-                        trail.style.top = `${rect.top + window.scrollY}px`;
-                        container.appendChild(trail);
+                        const currentX = rect.left + window.scrollX;
+                        const currentY = rect.top + window.scrollY;
                         
-                        // 拖尾逐渐消失
-                        setTimeout(() => {
-                            if (trail.parentNode) {
-                                trail.style.transition = 'opacity 0.5s ease-out';
-                                trail.style.opacity = '0';
+                        // 添加拖尾点
+                        trailPositions.push({ x: currentX, y: currentY });
+                        
+                        // 限制拖尾长度
+                        if (trailPositions.length > 8) {
+                            trailPositions.shift();
+                        }
+                        
+                        // 创建流线型轨迹
+                        if (trailPositions.length >= 2) {
+                            // 创建多个拖尾点，形成流线型
+                            for (let j = 0; j < trailPositions.length; j++) {
+                                const pos = trailPositions[j];
+                                const trail = document.createElement('div');
+                                trail.className = 'trail';
+                                
+                                // 根据距离当前粒子的远近调整透明度和大小
+                                const ageFactor = j / trailPositions.length;
+                                const size = 2 * (1 - ageFactor);
+                                const opacity = 0.7 * (1 - ageFactor);
+                                
+                                trail.style.width = `${size}px`;
+                                trail.style.height = `${size}px`;
+                                trail.style.backgroundColor = color;
+                                trail.style.opacity = opacity.toString();
+                                trail.style.left = `${pos.x}px`;
+                                trail.style.top = `${pos.y}px`;
+                                trail.style.boxShadow = `0 0 ${4 * (1 - ageFactor)}px ${color}`;
+                                
+                                container.appendChild(trail);
+                                
+                                // 渐变消失效果
                                 setTimeout(() => {
                                     if (trail.parentNode) {
-                                        trail.remove();
+                                        trail.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
+                                        trail.style.opacity = '0';
+                                        trail.style.transform = 'scale(0.5)';
+                                        setTimeout(() => {
+                                            if (trail.parentNode) {
+                                                trail.remove();
+                                            }
+                                        }, 800);
                                     }
-                                }, 500);
+                                }, 100);
                             }
-                        }, 50);
-                    }, 30); // 每30毫秒产生一个拖尾
+                        }
+                        
+                        lastTrail = { x: currentX, y: currentY };
+                    }, 20); // 更频繁地创建拖尾，形成更平滑的流线
                     
                     // 主粒子动画
                     const animation = particle.animate([
@@ -128,7 +173,7 @@
                         },
                         { 
                             transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`,
-                            opacity: 0
+                            opacity: 0.3
                         }
                     ], {
                         duration: duration,
@@ -151,23 +196,31 @@
                     }, duration);
                 }
                 
-                // 中心闪光效果
+                // 中心爆炸效果
                 const flash = document.createElement('div');
                 flash.className = 'particle';
-                flash.style.width = '20px';
-                flash.style.height = '20px';
-                flash.style.left = `${x - 10}px`;
-                flash.style.top = `${y - 10}px`;
+                flash.style.width = '25px';
+                flash.style.height = '25px';
+                flash.style.left = `${x - 12.5}px`;
+                flash.style.top = `${y - 12.5}px`;
                 flash.style.backgroundColor = '#ffffff';
-                flash.style.boxShadow = '0 0 30px 10px #ffffff';
+                flash.style.boxShadow = '0 0 40px 15px #ffffff';
                 flash.style.zIndex = '10';
                 container.appendChild(flash);
                 
+                // 爆炸光晕逐渐消失
                 setTimeout(() => {
                     if (flash.parentNode) {
-                        flash.remove();
+                        flash.style.transition = 'all 0.5s ease-out';
+                        flash.style.opacity = '0';
+                        flash.style.transform = 'scale(3)';
+                        setTimeout(() => {
+                            if (flash.parentNode) {
+                                flash.remove();
+                            }
+                        }, 500);
                     }
-                }, 200);
+                }, 100);
             }
             
             // 监听点击事件
