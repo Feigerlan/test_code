@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>点击烟花效果</title>
+    <title>绚丽烟花效果</title>
     <style>
         body {
             margin: 0;
@@ -23,10 +23,19 @@
             height: 100%;
         }
         
-        .firework {
+        .particle {
             position: absolute;
             width: 4px;
             height: 4px;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle, #fff, #ccc);
+        }
+        
+        .trail {
+            position: absolute;
+            width: 2px;
+            height: 2px;
             border-radius: 50%;
             pointer-events: none;
         }
@@ -59,29 +68,60 @@
                 '#ff7700', '#ff0077', '#7700ff', '#00ff77', '#77ff00', '#ff77ff'
             ];
             
-            // 创建烟花粒子
+            // 创建带拖尾效果的烟花
             function createFirework(x, y) {
-                const particleCount = 100; // 粒子数量
+                const particleCount = 150; // 增加粒子数量
                 
                 for (let i = 0; i < particleCount; i++) {
-                    const firework = document.createElement('div');
-                    firework.className = 'firework';
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
                     
                     // 随机选择颜色
                     const color = colors[Math.floor(Math.random() * colors.length)];
-                    firework.style.backgroundColor = color;
-                    firework.style.left = `${x}px`;
-                    firework.style.top = `${y}px`;
+                    particle.style.backgroundColor = color;
+                    particle.style.boxShadow = `0 0 6px 2px ${color}`;
+                    particle.style.left = `${x}px`;
+                    particle.style.top = `${y}px`;
                     
-                    container.appendChild(firework);
+                    container.appendChild(particle);
                     
                     // 计算随机方向和距离
                     const angle = Math.random() * Math.PI * 2;
-                    const distance = 50 + Math.random() * 100;
-                    const duration = 800 + Math.random() * 700;
+                    const distance = 100 + Math.random() * 150;
+                    const duration = 1000 + Math.random() * 1000;
                     
-                    // 使用CSS动画实现烟花效果
-                    const animation = firework.animate([
+                    // 创建拖尾效果
+                    const trailInterval = setInterval(() => {
+                        if (!particle.parentNode) {
+                            clearInterval(trailInterval);
+                            return;
+                        }
+                        
+                        const rect = particle.getBoundingClientRect();
+                        const trail = document.createElement('div');
+                        trail.className = 'trail';
+                        trail.style.backgroundColor = color;
+                        trail.style.opacity = '0.7';
+                        trail.style.left = `${rect.left + window.scrollX}px`;
+                        trail.style.top = `${rect.top + window.scrollY}px`;
+                        container.appendChild(trail);
+                        
+                        // 拖尾逐渐消失
+                        setTimeout(() => {
+                            if (trail.parentNode) {
+                                trail.style.transition = 'opacity 0.5s ease-out';
+                                trail.style.opacity = '0';
+                                setTimeout(() => {
+                                    if (trail.parentNode) {
+                                        trail.remove();
+                                    }
+                                }, 500);
+                            }
+                        }, 50);
+                    }, 30); // 每30毫秒产生一个拖尾
+                    
+                    // 主粒子动画
+                    const animation = particle.animate([
                         { 
                             transform: `translate(0, 0)`,
                             opacity: 1
@@ -96,11 +136,38 @@
                         fill: 'forwards'
                     });
                     
-                    // 动画结束后移除元素
+                    // 动画结束后清理
                     animation.onfinish = () => {
-                        firework.remove();
+                        clearInterval(trailInterval);
+                        particle.remove();
                     };
+                    
+                    // 设置超时确保清理
+                    setTimeout(() => {
+                        clearInterval(trailInterval);
+                        if (particle.parentNode) {
+                            particle.remove();
+                        }
+                    }, duration);
                 }
+                
+                // 中心闪光效果
+                const flash = document.createElement('div');
+                flash.className = 'particle';
+                flash.style.width = '20px';
+                flash.style.height = '20px';
+                flash.style.left = `${x - 10}px`;
+                flash.style.top = `${y - 10}px`;
+                flash.style.backgroundColor = '#ffffff';
+                flash.style.boxShadow = '0 0 30px 10px #ffffff';
+                flash.style.zIndex = '10';
+                container.appendChild(flash);
+                
+                setTimeout(() => {
+                    if (flash.parentNode) {
+                        flash.remove();
+                    }
+                }, 200);
             }
             
             // 监听点击事件
